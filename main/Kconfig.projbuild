@@ -1,0 +1,88 @@
+menu "4G GSM Module Configuration"
+
+    config SIM7670_APN
+        string "APN for SIM Card"
+        default "gpinternet"
+        help
+            Access Point Name for your SIM card provider.
+
+    menu "GPIO Configuration"
+        config SIM7670_TX_PIN
+            int "Modem TX Pin (ESP RX)"
+            default 18
+            help
+                GPIO pin on ESP32 connected to the modem's RX pin.
+
+        config SIM7670_RX_PIN
+            int "Modem RX Pin (ESP TX)"
+            default 17
+            help
+                GPIO pin on ESP32 connected to the modem's TX pin.
+
+        config SIM7670_DTR_PIN
+            int "Modem DTR Pin"
+            default 45
+            help
+                GPIO pin on ESP32 connected to the modem's DTR pin.
+
+    endmenu # GPIO Configuration
+
+    menu "UART Configuration"
+        config SIM7670_BAUD_RATE
+            int "UART Baud Rate"
+            default 115200
+            help
+                Baud rate for communication with the modem.
+    endmenu # UART Configuration
+
+    menu "MQTT Configuration"
+        config SIM7670_MQTT_ENABLE
+            bool "Enable MQTT Client"
+            default y
+            help
+                Enable the MQTT client functionality.
+
+        if SIM7670_MQTT_ENABLE
+            config SIM7670_MQTT_BROKER_URL
+                string "MQTT Broker URL"
+                default "mqtt://broker.hivemq.com"
+                help
+                    URL of the MQTT broker (e.g., mqtt://broker.hivemq.com).
+
+            config SIM7670_MQTT_TOPIC
+                string "MQTT Topic"
+                default "esp32/response"
+                help
+                    Topic to subscribe and publish to.
+
+            config SIM7670_MQTT_USERNAME
+                string "MQTT Username"
+                default ""
+                help
+                    Username for MQTT broker authentication (optional).
+
+            config SIM7670_MQTT_PASSWORD
+                string "MQTT Password"
+                default ""
+                help
+                    Password for MQTT broker authentication (optional).
+        endif # SIM7670_MQTT_ENABLE
+    endmenu # MQTT Configuration
+
+    menu "SMS Configuration"
+        config SIM7670_SMS_ENABLE
+            bool "Enable SMS Feature"
+            default n
+            help
+                Placeholder to enable SMS functionality in the future.
+
+        if SIM7670_SMS_ENABLE
+            config SIM7670_SMS_PHONE_NO
+                string "Target Phone Number for SMS"
+                default ""
+                help
+                    The phone number to send SMS messages to.
+        endif # SIM7670_SMS_ENABLE
+    endmenu # SMS Configuration
+
+endmenu # 4G GSM Module Configuration
