@@ -26,6 +26,9 @@
 #ifndef CONFIG_SIM7670_MQTT_TOPIC
 #define CONFIG_SIM7670_MQTT_TOPIC "test/topic"
 #endif
+#ifndef CONFIG_TARGET_PHONE_NUMBER
+#define CONFIG_TARGET_PHONE_NUMBER "+8801521475412"
+#endif
 
 typedef enum {
     MODE_SMS,
@@ -112,8 +115,27 @@ static void on_ip_event(void *arg, esp_event_base_t event_base, int32_t event_id
     }
 }
 
+// --- SMS Sending Function ---
+static esp_err_t send_sms(esp_modem_dce_t *dce, const char *phone_number, const char *message) {
+    if (!dce || !phone_number || !message || strlen(phone_number) == 0) {
+        ESP_LOGE(TAG, "send_sms: Invalid arguments");
+        return ESP_ERR_INVALID_ARG;
+    }
+    ESP_LOGI(TAG, "Attempting to send SMS to %s", phone_number);
+ 
+    // Use the public API function to send SMS.
+    // This is more robust and abstracts away the low-level AT command sequence.
+    esp_err_t err = esp_modem_send_sms(dce, phone_number, message);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to send SMS: %s", esp_err_to_name(err));
+    } else {
+        ESP_LOGI(TAG, "SMS sent successfully.");
+    }
+    return err;
+}
+
 // --- SMS Parsing Function ---
-static void handle_sms_content(const char *sms_text) {
+static void handle_sms_content(esp_modem_dce_t *dce, const char *sms_text) {
     int dht_h, dht_l, temp_h, temp_l;
     // Check for the specific format: #dht:H22,L20;temp:H23,L15;#
     // We look for the start of the pattern
@@ -130,6 +152,13 @@ static void handle_sms_content(const char *sms_text) {
         if (sscanf(pattern_start, "#dht:H%d,L%d;temp:H%d,L%d;#", &dht_h, &dht_l, &temp_h, &temp_l) == 4) {
             ESP_LOGI(TAG, "SMS DECODE: dht sensor high threshold is %d and low threshold is %d. same as temp sensor (H%d, L%d)",
                      dht_h, dht_l, temp_h, temp_l);
+            
+            // Send a success response to the pre-configured phone number
+            if (strlen(CONFIG_TARGET_PHONE_NUMBER) > 0) {
+                send_sms(dce, CONFIG_TARGET_PHONE_NUMBER, "Success: DHT & Temp thresholds received.");
+            } else {
+                ESP_LOGW(TAG, "Target phone number not configured in menuconfig. Cannot send success SMS.");
+            }
         } else {
             ESP_LOGW(TAG, "SMS matched prefix but failed to parse values: %s", pattern_start);
         }
@@ -138,6 +167,7 @@ static void handle_sms_content(const char *sms_text) {
         ESP_LOGI(TAG, "Received SMS (Raw): %s", sms_text);
     }
 }
+
 
 void app_main(void) {
     // 1. Initialize NVS and Netif
@@ -296,7 +326,7 @@ void app_main(void) {
                         // Check for +CMGL: OR specific commands directly.
                         // This handles cases where the header might be lost due to buffer overflow.
                         if (strstr(sms_buffer, "+CMGL:") || strstr(sms_buffer, "#mqtt#") || strstr(sms_buffer, "#dht:")) {
-                            handle_sms_content(sms_buffer);
+                            handle_sms_content(dce, sms_buffer);
                             // Delete all messages to prevent repeated processing
                             // We delete all messages to ensure the inbox is clean for the next command
                             ESP_LOGI(TAG, "Deleting processed SMS...");

@@ -70,6 +70,7 @@ All project settings are configured using the ESP-IDF `menuconfig` system.
       - `MQTT Username`
       - `MQTT Password`
       - `MQTT Topic`
+    - **`Target Phone Number for SMS`**: The phone number (international format) to send notification SMS messages to (e.g., after a successful command).
 
 5.  Save the configuration and exit `menuconfig`.
 
